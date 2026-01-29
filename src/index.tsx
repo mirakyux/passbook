@@ -66,8 +66,8 @@ app.put('/api/entries/:id', async (c) => {
 
     const id = c.req.param('id')
     const { payload, iv, tag } = await c.req.json()
-    await c.env.DB.prepare('UPDATE entries SET payload = ?, iv = ?, tag = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-        .bind(payload, iv, tag, id)
+    await c.env.DB.prepare('INSERT OR REPLACE INTO entries (id, payload, iv, tag, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)')
+        .bind(id, payload, iv, tag)
         .run()
     return c.json({ success: true })
 })
