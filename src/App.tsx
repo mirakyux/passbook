@@ -191,9 +191,10 @@ export default function App() {
                         const issuer = url.searchParams.get('issuer')
 
                         if (secret) {
+                            const cleanSecret = secret.replace(/\s/g, '').toUpperCase()
                             setEditing(prev => ({
                                 ...prev!,
-                                otpSecret: secret,
+                                otpSecret: cleanSecret,
                                 title: prev?.title || issuer || '',
                                 username: prev?.username || label || ''
                             }))
@@ -332,8 +333,10 @@ export default function App() {
                                             <span className="text-2xl font-mono text-blue-100 tracking-[0.2em]">
                                                 {(() => {
                                                     try {
-                                                        return authenticator.generate(entry.otpSecret)
+                                                        const clean = entry.otpSecret?.replace(/\s/g, '').toUpperCase()
+                                                        return clean ? authenticator.generate(clean) : ''
                                                     } catch (e) {
+                                                        console.error('TOTP Error:', e)
                                                         return 'INVALID'
                                                     }
                                                 })()}
@@ -347,7 +350,8 @@ export default function App() {
                                             <button
                                                 onClick={() => {
                                                     try {
-                                                        navigator.clipboard.writeText(authenticator.generate(entry.otpSecret!))
+                                                        const clean = entry.otpSecret?.replace(/\s/g, '').toUpperCase()
+                                                        if (clean) navigator.clipboard.writeText(authenticator.generate(clean))
                                                     } catch (e) { }
                                                 }}
                                                 className="p-2 hover:bg-blue-500/20 rounded-lg text-blue-400"
@@ -412,7 +416,7 @@ export default function App() {
                                 <div className="flex gap-2">
                                     <input
                                         value={editing?.otpSecret || ''}
-                                        onChange={e => setEditing({ ...editing!, otpSecret: e.target.value })}
+                                        onChange={e => setEditing({ ...editing!, otpSecret: e.target.value.replace(/\s/g, '').toUpperCase() })}
                                         placeholder="2FA Secret (optional)"
                                         className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3"
                                     />
