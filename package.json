@@ -27,6 +27,7 @@
     "@hono/vite-build": "^1.9.2",
     "@hono/vite-cloudflare-pages": "^0.4.3",
     "@hono/vite-dev-server": "^0.24.1",
+    "@tailwindcss/postcss": "^4.1.18",
     "@types/crypto-js": "^4.2.2",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
