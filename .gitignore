@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.npm
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Production
+/dist
+
+# Misc
+.DS_Store
+*.pem
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Cloudflare / Wrangler
+.wrangler/
+.dev.vars
+
+# Local environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database
+/y
+*.db
+*.sqlite
