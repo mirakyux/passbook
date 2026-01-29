@@ -6,6 +6,7 @@ export const renderer = jsxRenderer(({ children, title }) => {
             <head>
                 <meta charset="UTF-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
                 <link href="/src/index.css" rel="stylesheet" />
                 {title ? <title>{title}</title> : <title>Passbook</title>}
             </head>
