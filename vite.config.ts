@@ -19,12 +19,12 @@ export default defineConfig(({ mode }) => {
         return {
             plugins: [
                 build({
-                    entry: 'src/index.ts',
+                    entry: 'src/index.tsx',
                     output: '_worker.js',
                     adapter: cloudflareAdapter
                 }),
                 devServer({
-                    entry: 'src/index.ts'
+                    entry: 'src/index.tsx'
                 })
             ]
         }
