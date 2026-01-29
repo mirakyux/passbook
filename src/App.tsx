@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Lock, Plus, Shield, ShieldCheck, Trash2, Key, Sidebar, LogOut, Copy, ExternalLink, Search, Clock, QrCode } from 'lucide-react'
 import * as vaultCrypto from './crypto'
-import { authenticator } from 'otplib'
+import * as OTPAuth from 'otpauth'
 import jsQR from 'jsqr'
 
 // Types
@@ -334,7 +334,11 @@ export default function App() {
                                                 {(() => {
                                                     try {
                                                         const clean = entry.otpSecret?.replace(/\s/g, '').toUpperCase()
-                                                        return clean ? authenticator.generate(clean) : ''
+                                                        if (!clean) return ''
+                                                        const totp = new OTPAuth.TOTP({
+                                                            secret: OTPAuth.Secret.fromBase32(clean)
+                                                        })
+                                                        return totp.generate()
                                                     } catch (e) {
                                                         console.error('TOTP Error:', e)
                                                         return 'INVALID'
@@ -351,7 +355,12 @@ export default function App() {
                                                 onClick={() => {
                                                     try {
                                                         const clean = entry.otpSecret?.replace(/\s/g, '').toUpperCase()
-                                                        if (clean) navigator.clipboard.writeText(authenticator.generate(clean))
+                                                        if (clean) {
+                                                            const totp = new OTPAuth.TOTP({
+                                                                secret: OTPAuth.Secret.fromBase32(clean)
+                                                            })
+                                                            navigator.clipboard.writeText(totp.generate())
+                                                        }
                                                     } catch (e) { }
                                                 }}
                                                 className="p-2 hover:bg-blue-500/20 rounded-lg text-blue-400"
