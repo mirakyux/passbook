@@ -15,15 +15,24 @@ Passbook 是一个轻量级、安全的账号密码与 2FA (TOTP) 管理器，�
 ### 2. Fork 本项目
 点击页面右上角的 **Fork** 按钮，将代码同步到你的 GitHub 账号。
 
-### 3. 在 Cloudflare Pages 中创建并连接应用
-1. 进入 **Workers & Pages** -> **Create application** -> **Pages** -> **Connect to Git**。
-2. 选择你刚 Fork 的 `passbook` 仓库。
-3. **Build settings** 配置：
+### 3. 在 Cloudflare 中创建并连接应用
+本项目采用 Cloudflare 最新的 **Workers Assets (Unified)** 模式，兼容性更好：
+1. 进入 **Workers & Pages** -> **Create application** -> **Create Workers**. (虽然是网页应用，但采用 Worker 模式能实现更好的自动化)。
+2. 选择 **Import from Git**。
+3. 选择你刚 Fork 的 `passbook` 仓库。
+4. **Build settings** 配置：
    - **Framework preset**: `None`
    - **Build command**: `pnpm run build`
    - **Build output directory**: `dist`
-   - **重要提示**：在 Cloudflare Dashboard 中，**不需要**填写“部署命令” (Deploy command)。如果你使用了自定义 CI，请确保命令是 `npx wrangler pages deploy dist` 而不是 `npx wrangler deploy`。
-4. 点击 **Save and Deploy**。由于项目中包含 `wrangler.json`，Cloudflare 会自动识别 D1 绑定。
+5. 点击 **Deploy**。由于项目中包含 `wrangler.json`，系统会自动识别并提示你绑定 `DB`。
+
+> [!TIP]
+> 如果你在本地手动部署，只需运行：
+> ```bash
+> pnpm run build
+> npx wrangler deploy
+> ```
+
 
 ### 4. 完成！
 访问你的 Pages 链接，系统会自动识别并提示你设置主密码。如果应用提示数据库错误，请手动在控制台 Settings -> Bindings 中确认 `DB` 绑定到了你的 `passbook` 数据库。
