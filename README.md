@@ -16,22 +16,14 @@ Passbook 是一个轻量级、安全的账号密码与 2FA (TOTP) 管理器，�
 点击页面右上角的 **Fork** 按钮，将代码同步到你的 GitHub 账号。
 
 ### 3. 在 Cloudflare 中创建并连接应用
-本项目采用 Cloudflare 最新的 **Workers Assets (Unified)** 模式，兼容性更好：
-1. 进入 **Workers & Pages** -> **Create application** -> **Create Workers**. (虽然是网页应用，但采用 Worker 模式能实现更好的自动化)。
+本项目支持 Cloudflare 最新的 **Workers Assets** 模式，实现全自动部署：
+1. 进入 **Workers & Pages** -> **Create application** -> **Create Worker**.
 2. 选择 **Import from Git**。
 3. 选择你刚 Fork 的 `passbook` 仓库。
 4. **Build settings** 配置：
-   - **Framework preset**: `None`
    - **Build command**: `pnpm run build`
-   - **Build output directory**: `dist`
-5. 点击 **Deploy**。由于项目中包含 `wrangler.json`，系统会自动识别并提示你绑定 `DB`。
-
-> [!TIP]
-> 如果你在本地手动部署，只需运行：
-> ```bash
-> pnpm run build
-> npx wrangler deploy
-> ```
+   - **Deploy command**: `npx wrangler deploy`
+5. 点击 **Deploy**。系统会自动识别 `wrangler.json` 并根据名称绑定 D1 数据库。
 
 
 ### 4. 完成！

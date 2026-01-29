@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build && cp .assetsignore dist/",
+    "build": "vite build --mode client && vite build && cp .assetsignore dist/",
     "preview": "vite preview",
     "deploy": "wrangler deploy"
   },
@@ -26,6 +26,7 @@
     "@cloudflare/workers-types": "^4.20260129.0",
     "@hono/vite-build": "^1.9.2",
     "@hono/vite-cloudflare-pages": "^0.4.3",
+    "@hono/vite-dev-server": "^0.24.1",
     "@types/crypto-js": "^4.2.2",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",

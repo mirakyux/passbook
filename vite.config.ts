@@ -1,10 +1,32 @@
 import { defineConfig } from 'vite'
-import hono from '@hono/vite-cloudflare-pages'
+import react from '@vitejs/plugin-react'
+import devServer from '@hono/vite-dev-server'
+import build from '@hono/vite-build'
+import cloudflareAdapter from '@hono/vite-build/cloudflare-pages'
 
-export default defineConfig({
-    plugins: [hono()],
-    build: {
-        outDir: 'dist',
-        emptyOutDir: true,
+export default defineConfig(({ mode }) => {
+    if (mode === 'client') {
+        return {
+            plugins: [react()],
+            build: {
+                outDir: 'dist',
+                rollupOptions: {
+                    input: './index.html'
+                }
+            }
+        }
+    } else {
+        return {
+            plugins: [
+                build({
+                    entry: 'src/index.ts',
+                    output: '_worker.js',
+                    adapter: cloudflareAdapter
+                }),
+                devServer({
+                    entry: 'src/index.ts'
+                })
+            ]
+        }
     }
 })
