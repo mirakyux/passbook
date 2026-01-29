@@ -1,6 +1,6 @@
 {
     "name": "passbook",
-    "compatibility_date": "2024-11-01",
+    "compatibility_date": "2025-02-01",
     "compatibility_flags": [
         "nodejs_compat"
     ],
@@ -10,5 +10,8 @@
             "binding": "DB",
             "database_name": "passbook"
         }
-    ]
+    ],
+    "observability": {
+        "enabled": true
+    }
 }
