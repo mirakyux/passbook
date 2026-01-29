@@ -22,7 +22,8 @@ Passbook 是一个轻量级、安全的账号密码与 2FA (TOTP) 管理器，�
    - **Framework preset**: `None`
    - **Build command**: `pnpm run build`
    - **Build output directory**: `dist`
-4. 点击 **Save and Deploy**。由于项目中包含 `wrangler.json`，Cloudflare 通常会自动识别并提示你绑定同名的 D1 数据库。
+   - **重要提示**：在 Cloudflare Dashboard 中，**不需要**填写“部署命令” (Deploy command)。如果你使用了自定义 CI，请确保命令是 `npx wrangler pages deploy dist` 而不是 `npx wrangler deploy`。
+4. 点击 **Save and Deploy**。由于项目中包含 `wrangler.json`，Cloudflare 会自动识别 D1 绑定。
 
 ### 4. 完成！
 访问你的 Pages 链接，系统会自动识别并提示你设置主密码。如果应用提示数据库错误，请手动在控制台 Settings -> Bindings 中确认 `DB` 绑定到了你的 `passbook` 数据库。

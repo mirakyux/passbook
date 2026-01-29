@@ -1,10 +1,14 @@
 {
     "name": "passbook",
+    "main": "dist/_worker.js",
     "compatibility_date": "2025-02-01",
     "compatibility_flags": [
         "nodejs_compat"
     ],
-    "pages_build_output_dir": "dist",
+    "assets": {
+        "directory": "dist",
+        "binding": "ASSETS"
+    },
     "d1_databases": [
         {
             "binding": "DB",

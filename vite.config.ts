@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
-import pages from '@hono/vite-cloudflare-pages'
+import hono from '@hono/vite-cloudflare-pages'
 
 export default defineConfig({
-    plugins: [pages()],
+    plugins: [hono()],
     build: {
         outDir: 'dist',
         emptyOutDir: true,

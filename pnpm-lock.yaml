@@ -42,6 +42,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20260129.0
         version: 4.20260129.0
+      '@hono/vite-build':
+        specifier: ^1.9.2
+        version: 1.9.2(hono@4.11.7)
       '@hono/vite-cloudflare-pages':
         specifier: ^0.4.3
         version: 0.4.3(hono@4.11.7)
@@ -666,6 +669,12 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@hono/vite-build@1.9.2':
+    resolution: {integrity: sha512-7/qan3lgeA8mMv7jtx5KX0wrAdMteNqI87JcZjS1CUN9hhIsaqOvySXcT3lZLyhYidywl+s88ZX84I0knefItA==}
+    engines: {node: '>=18.14.1'}
+    peerDependencies:
+      hono: '*'
 
   '@hono/vite-cloudflare-pages@0.4.3':
     resolution: {integrity: sha512-MrMsH/EGHQI3KG5CAI7GMrwyTgiXbpY+uo3uBBdOUONHLsn8Z+Wt4y+A4T0eMEzvo6xc+uFh+graZMbT1RjU3A==}
@@ -1756,6 +1765,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.27.2':
     optional: true
+
+  '@hono/vite-build@1.9.2(hono@4.11.7)':
+    dependencies:
+      hono: 4.11.7
 
   '@hono/vite-cloudflare-pages@0.4.3(hono@4.11.7)':
     dependencies:
