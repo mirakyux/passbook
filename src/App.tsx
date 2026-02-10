@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Lock, Plus, Shield, ShieldCheck, Trash2, Key, Sidebar, LogOut, Copy, ExternalLink, Search, Clock, QrCode, Loader2 } from 'lucide-react'
+import { Lock, Plus, Shield, ShieldCheck, Trash2, Key, Sidebar, LogOut, Copy, ExternalLink, Search, Clock, QrCode, Loader2, AlertCircle, CheckCircle2, X } from 'lucide-react'
 import * as vaultCrypto from './crypto'
 import * as OTPAuth from 'otpauth'
 import jsQR from 'jsqr'
@@ -35,6 +35,15 @@ export default function App() {
     const [editing, setEditing] = useState<Entry | null>(null)
     const [now, setNow] = useState(Date.now())
     const [isPersistent, setIsPersistent] = useState(true) // Default to remember
+
+    // Toast and Confirmation State
+    const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null)
+    const [confirmAction, setConfirmAction] = useState<{ title: string, message: string, onConfirm: () => void } | null>(null)
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+        setToast({ message, type })
+        setTimeout(() => setToast(null), 3000)
+    }
 
     // Check for stored password and system status on mount
     useEffect(() => {
@@ -92,7 +101,8 @@ export default function App() {
                 const decrypted = (await Promise.all(data.map(async item => {
                     try {
                         const content = await vaultCrypto.decrypt(item, passToUse)
-                        return { id: item.id, ...content }
+                        // Use spread with id last to ensure decrypted content doesn't overwrite index id
+                        return { ...content, id: item.id }
                     } catch (e) {
                         console.warn(`Failed to decrypt entry ${item.id}`, e)
                         return null
@@ -102,25 +112,39 @@ export default function App() {
                 setIsLocked(false)
             } else if (res.status === 401) {
                 // Not initialized with this password?
-                if (confirm('This password is not recognized. Would you like to use it to create a new partition in this vault?')) {
-                    const init = await fetch('/api/init', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ masterHash: key })
-                    })
-                    if (init.ok) {
-                        setEntries([])
-                        setIsLocked(false)
-                    } else {
-                        alert('Failed to initialize new partition')
+                setConfirmAction({
+                    title: 'New Partition',
+                    message: 'This password is not recognized. Would you like to use it to create a new partition in this vault?',
+                    onConfirm: async () => {
+                        setConfirmAction(null)
+                        setLoading(true)
+                        try {
+                            const init = await fetch('/api/init', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ masterHash: key })
+                            })
+                            if (init.ok) {
+                                setEntries([])
+                                setIsLocked(false)
+                                showToast('Vault initialized with new password', 'success')
+                            } else {
+                                showToast('Failed to initialize new partition', 'error')
+                            }
+                        } catch (e) {
+                            showToast('System error during initialization', 'error')
+                        } finally {
+                            setLoading(false)
+                        }
                     }
-                }
-            } else {
-                alert('System error or invalid password')
+                })
+            }
+            else {
+                showToast('System error or invalid password', 'error')
             }
         } catch (e) {
             console.error(e)
-            alert('Failed to unlock vault')
+            showToast('Failed to unlock vault', 'error')
         } finally {
             setLoading(false)
         }
@@ -142,7 +166,8 @@ export default function App() {
             })
             if (res.ok) {
                 // Refresh list or update local state
-                const newEntry = { id, ...entry } as Entry
+                // Use spread with id last to ensuring newly generated id wins over potential empty id in state
+                const newEntry = { ...entry, id } as Entry
                 if (isEdit) {
                     setEntries(entries.map(e => e.id === id ? newEntry : e))
                 } else {
@@ -150,30 +175,44 @@ export default function App() {
                 }
                 setShowAdd(false)
                 setEditing(null)
+                showToast(isEdit ? 'Entry updated' : 'Entry added', 'success')
             }
         } catch (e) {
             console.error(e)
+            showToast('Failed to save entry', 'error')
         } finally {
             setLoading(false)
         }
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure?')) return
-        setLoading(true)
-        try {
-            const res = await fetch(`/api/entries/${id}`, {
-                method: 'DELETE',
-                headers: { 'X-Auth-Key': authKey }
-            })
-            if (res.ok) {
-                setEntries(prev => prev.filter(e => e.id !== id))
-            }
-        } catch (e) {
-            console.error(e)
-        } finally {
-            setLoading(false)
+        if (!id) {
+            console.error('Try to delete entry with empty ID')
+            return
         }
+        setConfirmAction({
+            title: 'Delete Entry',
+            message: 'Are you sure you want to delete this entry? This action cannot be undone.',
+            onConfirm: async () => {
+                setConfirmAction(null)
+                setLoading(true)
+                try {
+                    const res = await fetch(`/api/entries/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'X-Auth-Key': authKey }
+                    })
+                    if (res.ok) {
+                        setEntries(prev => prev.filter(e => e.id !== id))
+                        showToast('Entry deleted', 'success')
+                    }
+                } catch (e) {
+                    console.error(e)
+                    showToast('Failed to delete entry', 'error')
+                } finally {
+                    setLoading(false)
+                }
+            }
+        })
     }
 
     const handleQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -208,19 +247,25 @@ export default function App() {
                                 title: prev?.title || issuer || '',
                                 username: prev?.username || label || ''
                             }))
+                            showToast('2FA Secret imported', 'success')
                         } else {
-                            alert('No secret found in QR code')
+                            showToast('No secret found in QR code', 'error')
                         }
                     } catch (err) {
-                        alert('Invalid QR code format')
+                        showToast('Invalid QR code format', 'error')
                     }
                 } else {
-                    alert('Could not detect QR code in image')
+                    showToast('Could not detect QR code in image', 'error')
                 }
             }
             img.src = event.target?.result as string
         }
         reader.readAsDataURL(file)
+    }
+
+    const copyToClipboard = (text: string, label: string) => {
+        navigator.clipboard.writeText(text)
+        showToast(`${label} copied to clipboard`, 'success')
     }
 
     if (isLocked) {
@@ -343,14 +388,14 @@ export default function App() {
                                     <span className="text-slate-500">Username</span>
                                     <div className="flex items-center gap-2">
                                         <span className="text-slate-300">{entry.username}</span>
-                                        <button onClick={() => navigator.clipboard.writeText(entry.username)} className="text-blue-400 hover:text-blue-300"><Copy size={14} /></button>
+                                        <button onClick={() => copyToClipboard(entry.username, 'Username')} className="text-blue-400 hover:text-blue-300 transition-colors"><Copy size={14} /></button>
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-slate-500">Password</span>
                                     <div className="flex items-center gap-2">
                                         <span className="text-slate-300">••••••••</span>
-                                        <button onClick={() => entry.password && navigator.clipboard.writeText(entry.password)} className="text-blue-400 hover:text-blue-300"><Copy size={14} /></button>
+                                        <button onClick={() => entry.password && copyToClipboard(entry.password, 'Password')} className="text-blue-400 hover:text-blue-300 transition-colors"><Copy size={14} /></button>
                                     </div>
                                 </div>
                                 {entry.otpSecret && (
@@ -474,6 +519,42 @@ export default function App() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirmation Modal */}
+            {confirmAction && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+                    <div className="w-full max-w-sm glass-card p-8 border border-slate-700 animate-modal-in">
+                        <div className="flex items-center gap-3 mb-4 text-amber-400">
+                            <AlertCircle size={24} />
+                            <h3 className="text-xl font-bold text-white">{confirmAction.title}</h3>
+                        </div>
+                        <p className="text-slate-400 mb-8">{confirmAction.message}</p>
+                        <div className="flex gap-4">
+                            <button onClick={() => setConfirmAction(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl transition-all">Cancel</button>
+                            <button onClick={confirmAction.onConfirm} className="flex-1 bg-red-600 hover:bg-red-500 py-3 rounded-xl transition-all">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Toast Notifications */}
+            {toast && (
+                <div className="toast-container">
+                    <div className={`toast-item ${toast.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                        toast.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
+                            'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                        }`}>
+                        {toast.type === 'success' ? <CheckCircle2 size={18} /> :
+                            toast.type === 'error' ? <AlertCircle size={18} /> :
+                                <Shield size={18} />
+                        }
+                        <span className="text-sm font-medium">{toast.message}</span>
+                        <button onClick={() => setToast(null)} className="ml-2 p-1 hover:bg-white/10 rounded-full transition-colors">
+                            <X size={14} />
+                        </button>
                     </div>
                 </div>
             )}
