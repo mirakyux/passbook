@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Lock, Plus, Shield, ShieldCheck, Trash2, Key, Sidebar, LogOut, Copy, ExternalLink, Search, Clock, QrCode } from 'lucide-react'
+import { Lock, Plus, Shield, ShieldCheck, Trash2, Key, Sidebar, LogOut, Copy, ExternalLink, Search, Clock, QrCode, Loader2 } from 'lucide-react'
 import * as vaultCrypto from './crypto'
 import * as OTPAuth from 'otpauth'
 import jsQR from 'jsqr'
@@ -89,25 +89,34 @@ export default function App() {
             })
             if (res.ok) {
                 const data: EncryptedEntry[] = await res.json()
-                const decrypted = await Promise.all(data.map(async item => {
-                    const content = await vaultCrypto.decrypt(item, passToUse)
-                    return { id: item.id, ...content }
-                }))
+                const decrypted = (await Promise.all(data.map(async item => {
+                    try {
+                        const content = await vaultCrypto.decrypt(item, passToUse)
+                        return { id: item.id, ...content }
+                    } catch (e) {
+                        console.warn(`Failed to decrypt entry ${item.id}`, e)
+                        return null
+                    }
+                }))).filter((e): e is Entry => e !== null)
                 setEntries(decrypted)
                 setIsLocked(false)
-            } else if (res.status === 403) {
-                // Not initialized? Treat this as first run
-                const init = await fetch('/api/init', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ masterHash: key })
-                })
-                if (init.ok) {
-                    setEntries([])
-                    setIsLocked(false)
+            } else if (res.status === 401) {
+                // Not initialized with this password?
+                if (confirm('This password is not recognized. Would you like to use it to create a new partition in this vault?')) {
+                    const init = await fetch('/api/init', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ masterHash: key })
+                    })
+                    if (init.ok) {
+                        setEntries([])
+                        setIsLocked(false)
+                    } else {
+                        alert('Failed to initialize new partition')
+                    }
                 }
             } else {
-                alert('Invalid password or system error')
+                alert('System error or invalid password')
             }
         } catch (e) {
             console.error(e)
@@ -120,10 +129,11 @@ export default function App() {
     const handleSave = async (entry: Partial<Entry>) => {
         setLoading(true)
         try {
-            const id = editing?.id || window.crypto.randomUUID()
+            const isEdit = !!editing?.id
+            const id = isEdit ? editing!.id : window.crypto.randomUUID()
             const encrypted = await vaultCrypto.encrypt(entry, password)
-            const res = await fetch(`/api/entries${editing ? `/${id}` : ''}`, {
-                method: editing ? 'PUT' : 'POST',
+            const res = await fetch(`/api/entries${isEdit ? `/${id}` : ''}`, {
+                method: isEdit ? 'PUT' : 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Auth-Key': authKey
@@ -133,7 +143,7 @@ export default function App() {
             if (res.ok) {
                 // Refresh list or update local state
                 const newEntry = { id, ...entry } as Entry
-                if (editing) {
+                if (isEdit) {
                     setEntries(entries.map(e => e.id === id ? newEntry : e))
                 } else {
                     setEntries([newEntry, ...entries])
@@ -243,9 +253,16 @@ export default function App() {
                     <button
                         onClick={handleUnlock}
                         disabled={loading || isInitialized === null}
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50"
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                        {loading ? (isInitialized === false ? 'Initializing...' : 'Decrypting...') : (isInitialized === false ? 'Setup Vault' : 'Unlock Vault')}
+                        {loading ? (
+                            <>
+                                <Loader2 size={20} className="animate-spin" />
+                                <span>{isInitialized === false ? 'Initializing...' : 'Decrypting...'}</span>
+                            </>
+                        ) : (
+                            <span>{isInitialized === false ? 'Setup Vault' : 'Unlock Vault'}</span>
+                        )}
                     </button>
                 </div>
             </div>
@@ -302,13 +319,23 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                    {filteredEntries.map(entry => (
-                        <div key={entry.id} className="p-6 glass-card border border-slate-800 hover:border-blue-500/30 transition-all group">
+                    {filteredEntries.map((entry, index) => (
+                        <div
+                            key={entry.id}
+                            style={{ animationDelay: `${index * 50}ms` }}
+                            className="p-6 glass-card border border-slate-800 hover:border-blue-500/30 transition-all group animate-fade-in-up opacity-0"
+                        >
                             <div className="flex justify-between items-start mb-4">
                                 <h3 className="font-bold text-lg">{entry.title}</h3>
                                 <div className="flex gap-2">
-                                    <button onClick={() => { setEditing(entry); setShowAdd(true); }} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400"><Key size={16} /></button>
-                                    <button className="p-2 hover:bg-red-500/20 rounded-lg text-slate-400 hover:text-red-400"><Trash2 size={16} /></button>
+                                    <button onClick={() => { setEditing(entry); setShowAdd(true); }} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 transition-colors"><Key size={16} /></button>
+                                    <button
+                                        onClick={() => handleDelete(entry.id)}
+                                        disabled={loading}
+                                        className="p-2 hover:bg-red-500/20 rounded-lg text-slate-400 hover:text-red-400 transition-colors disabled:opacity-50"
+                                    >
+                                        {loading ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                                    </button>
                                 </div>
                             </div>
                             <div className="space-y-3">
@@ -437,7 +464,14 @@ export default function App() {
                             </div>
                             <div className="flex gap-4 mt-8">
                                 <button type="button" onClick={() => { setShowAdd(false); setEditing(null); }} className="flex-1 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl transition-all">Cancel</button>
-                                <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl transition-all">Save Entry</button>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {loading && <Loader2 size={20} className="animate-spin" />}
+                                    <span>{loading ? 'Saving...' : 'Save Entry'}</span>
+                                </button>
                             </div>
                         </form>
                     </div>

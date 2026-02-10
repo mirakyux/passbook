@@ -23,7 +23,9 @@ app.use('*', renderer)
 // API Routes
 app.post('/api/init', async (c) => {
     const { masterHash } = await c.req.json()
-    const { results } = await c.env.DB.prepare('SELECT value FROM settings WHERE key = "master_hash"').all()
+    const { results } = await c.env.DB.prepare('SELECT value FROM settings WHERE key = "master_hash" AND value = ?')
+        .bind(masterHash)
+        .all()
     if (results.length > 0) return c.json({ error: 'Already initialized' }, 400)
     await c.env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
         .bind('master_hash', masterHash)
@@ -33,9 +35,10 @@ app.post('/api/init', async (c) => {
 
 app.get('/api/entries', async (c) => {
     const authKey = c.req.header('X-Auth-Key')
-    const { results: settings } = await c.env.DB.prepare('SELECT value FROM settings WHERE key = "master_hash"').all()
-    if (settings.length === 0) return c.json({ error: 'Not initialized' }, 403)
-    if (authKey !== settings[0].value) return c.json({ error: 'Unauthorized' }, 401)
+    const { results: settings } = await c.env.DB.prepare('SELECT value FROM settings WHERE key = "master_hash" AND value = ?')
+        .bind(authKey)
+        .all()
+    if (settings.length === 0) return c.json({ error: 'Unauthorized' }, 401)
 
     const { results } = await c.env.DB.prepare('SELECT * FROM entries ORDER BY created_at DESC').all()
     return c.json(results)
@@ -49,8 +52,10 @@ app.get('/api/status', async (c) => {
 
 app.post('/api/entries', async (c) => {
     const authKey = c.req.header('X-Auth-Key')
-    const { results: settings } = await c.env.DB.prepare('SELECT value FROM settings WHERE key = "master_hash"').all()
-    if (authKey !== settings?.[0]?.value) return c.json({ error: 'Unauthorized' }, 401)
+    const { results: settings } = await c.env.DB.prepare('SELECT value FROM settings WHERE key = "master_hash" AND value = ?')
+        .bind(authKey)
+        .all()
+    if (settings.length === 0) return c.json({ error: 'Unauthorized' }, 401)
 
     const { id, payload, iv, tag } = await c.req.json()
     await c.env.DB.prepare('INSERT OR REPLACE INTO entries (id, payload, iv, tag, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)')
@@ -61,8 +66,10 @@ app.post('/api/entries', async (c) => {
 
 app.put('/api/entries/:id', async (c) => {
     const authKey = c.req.header('X-Auth-Key')
-    const { results: settings } = await c.env.DB.prepare('SELECT value FROM settings WHERE key = "master_hash"').all()
-    if (authKey !== settings?.[0]?.value) return c.json({ error: 'Unauthorized' }, 401)
+    const { results: settings } = await c.env.DB.prepare('SELECT value FROM settings WHERE key = "master_hash" AND value = ?')
+        .bind(authKey)
+        .all()
+    if (settings.length === 0) return c.json({ error: 'Unauthorized' }, 401)
 
     const id = c.req.param('id')
     const { payload, iv, tag } = await c.req.json()
@@ -74,8 +81,10 @@ app.put('/api/entries/:id', async (c) => {
 
 app.delete('/api/entries/:id', async (c) => {
     const authKey = c.req.header('X-Auth-Key')
-    const { results: settings } = await c.env.DB.prepare('SELECT value FROM settings WHERE key = "master_hash"').all()
-    if (authKey !== settings?.[0]?.value) return c.json({ error: 'Unauthorized' }, 401)
+    const { results: settings } = await c.env.DB.prepare('SELECT value FROM settings WHERE key = "master_hash" AND value = ?')
+        .bind(authKey)
+        .all()
+    if (settings.length === 0) return c.json({ error: 'Unauthorized' }, 401)
 
     const id = c.req.param('id')
     await c.env.DB.prepare('DELETE FROM entries WHERE id = ?').bind(id).run()
